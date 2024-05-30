@@ -35,52 +35,24 @@ def filter_by_year(input_list):
     return filtered_list
 
 
-def calc_tax(tax):
-    tax_sum_usd = 0.0
-    tax_sum_huf = 0.0
+def calc_totals(raw_data):
+    totals = {"usd": 0.0, "huf": 0.0}
 
-    for t in tax:
+    for t in raw_data:
         year = int(t[0])
         month = int(t[1])
         day = int(t[2])
         usdv = float(t[3])
-        tax_sum_usd += usdv
+        totals["usd"] += usdv
         exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
         if not exchange_rate:
             print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day+1}")
             day += 1
         exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
         uds2huf_rate = exchange_rate[0].rates[0].rate
-        tax_sum_huf += usdv * uds2huf_rate
+        totals["huf"] += usdv * uds2huf_rate
         time.sleep(0.1)
-
-    print(f"tax [USD]: {tax_sum_usd}")
-    print(f"tax [HUF]: {tax_sum_huf}")
-    print(f"tax transactions: {len(tax)}")
-
-
-def calc_div(div):
-    div_sum_usd = 0.0
-    div_sum_huf = 0.0
-
-    for d in div:
-        year = int(d[0])
-        month = int(d[1])
-        day = int(d[2])
-        usdv = float(d[3])
-        div_sum_usd += usdv
-        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
-        if not exchange_rate:
-            print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day+1}")
-            day += 1
-        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
-        uds2huf_rate = exchange_rate[0].rates[0].rate
-        div_sum_huf += usdv * uds2huf_rate
-        time.sleep(0.1)
-
-    print(f"div [USD]: {div_sum_usd}")
-    print(f"div [HUF]: {div_sum_huf}")
-    print(f"div transactions: {len(div)}")
+    return totals
 
 
 if __name__ == "__main__":
@@ -96,5 +68,11 @@ if __name__ == "__main__":
     tax, div = parse_pdf()
     tax = filter_by_year(tax)
     div = filter_by_year(div)
-    calc_tax(tax)
-    calc_div(div)
+    totals_tax = calc_totals(tax)
+    print(f"tax [USD]: {totals_tax['usd']}")
+    print(f"tax [HUF]: {totals_tax['huf']}")
+    print(f"# of tax transactions: {len(tax)}")
+    totals_div = calc_totals(div)
+    print(f"div [USD]: {totals_div['usd']}")
+    print(f"div [HUF]: {totals_div['huf']}")
+    print(f"# of div transactions: {len(div)}")
