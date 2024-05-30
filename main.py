@@ -8,13 +8,12 @@ import time
 client = mnb.Mnb()
 
 parser = argparse.ArgumentParser(description="IBKR tax and dividend helper")
-parser.add_argument("statement", type=str)
-parser.add_argument("start_page", type=int)
-parser.add_argument("end_page", type=int)
-parser.add_argument("year", type=int)
+parser.add_argument("-i", "--input", type=str, nargs=1, required=True, help="input statement (.pdf)")
+parser.add_argument("-p", "--pages", type=int, nargs='+', required=True, help="start and end pages of tax and dividend info")
+parser.add_argument("-y", "--year", type=int, nargs=1, required=True, help="year filter")
 args = parser.parse_args()
 
-with open(args.statement, 'rb') as f:
+with open(args.input[0], 'rb') as f:
     reader = PyPDF2.PdfReader(f)
 
     tax_sum_usd = 0.0
@@ -25,7 +24,7 @@ with open(args.statement, 'rb') as f:
     div_sum_huf = 0.0
     div_len = 0
     div = []
-    for i in range(args.start_page, args.end_page):
+    for i in range(args.pages[0], args.pages[-1]):
 
         page = reader.pages[i]
 
@@ -41,7 +40,7 @@ with open(args.statement, 'rb') as f:
         div += div_match
 
     for t in tax:
-        if int(t[0]) == args.year:
+        if int(t[0]) == args.year[0]:
             tax_len += 1
             year = int(t[0])
             month = int(t[1])
@@ -62,7 +61,7 @@ with open(args.statement, 'rb') as f:
     print(f"tax transactions: {tax_len}")
 
     for d in div:
-        if int(d[0]) == args.year:
+        if int(d[0]) == args.year[0]:
             div_len += 1
             year = int(d[0])
             month = int(d[1])
