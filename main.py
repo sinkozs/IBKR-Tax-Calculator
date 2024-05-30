@@ -5,39 +5,35 @@ import PyPDF2
 import re
 import time
 
-client = mnb.Mnb()
 
-parser = argparse.ArgumentParser(description="IBKR tax and dividend helper")
-parser.add_argument("-i", "--input", type=str, nargs=1, required=True, help="input statement (.pdf)")
-parser.add_argument("-p", "--pages", type=int, nargs="+", required=True, help="start and end pages of tax and dividend info")
-parser.add_argument("-y", "--year", type=int, nargs=1, required=True, help="year filter")
-args = parser.parse_args()
+def parse_pdf():
+    tax = []
+    div = []
 
-with open(args.input[0], "rb") as f:
-    reader = PyPDF2.PdfReader(f)
+    with open(args.input[0], "rb") as f:
+        reader = PyPDF2.PdfReader(f)
 
+        for i in range(args.pages[0], args.pages[-1]):
+
+            page = reader.pages[i]
+
+            text = page.extract_text()
+            tax_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
+            if not tax_match:
+                print(f"tax regex error on page {i}")
+            tax += tax_match
+
+            div_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)", text)
+            if not div_match:
+                print(f"div regex error on page {i}")
+            div += div_match
+    return tax, div
+
+
+def calc_tax(tax):
     tax_sum_usd = 0.0
     tax_sum_huf = 0.0
     tax_len = 0
-    tax = []
-    div_sum_usd = 0.0
-    div_sum_huf = 0.0
-    div_len = 0
-    div = []
-    for i in range(args.pages[0], args.pages[-1]):
-
-        page = reader.pages[i]
-
-        text = page.extract_text()
-        tax_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
-        if not tax_match:
-            print(f"tax regex error on page {i}")
-        tax += tax_match
-
-        div_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)", text)
-        if not div_match:
-            print(f"div regex error on page {i}")
-        div += div_match
 
     for t in tax:
         if int(t[0]) == args.year[0]:
@@ -60,6 +56,12 @@ with open(args.input[0], "rb") as f:
     print(f"tax [HUF]: {tax_sum_huf}")
     print(f"tax transactions: {tax_len}")
 
+
+def calc_div(div):
+    div_sum_usd = 0.0
+    div_sum_huf = 0.0
+    div_len = 0
+
     for d in div:
         if int(d[0]) == args.year[0]:
             div_len += 1
@@ -80,3 +82,18 @@ with open(args.input[0], "rb") as f:
     print(f"div [USD]: {div_sum_usd}")
     print(f"div [HUF]: {div_sum_huf}")
     print(f"div transactions: {div_len}")
+
+
+if __name__ == "__main__":
+    client = mnb.Mnb()
+
+    parser = argparse.ArgumentParser(description="IBKR tax and dividend helper")
+    parser.add_argument("-i", "--input", type=str, nargs=1, required=True, help="input statement (.pdf)")
+    parser.add_argument("-p", "--pages", type=int, nargs="+", required=True,
+                        help="start and end pages of tax and dividend info")
+    parser.add_argument("-y", "--year", type=int, nargs=1, required=True, help="year filter")
+    args = parser.parse_args()
+
+    tax, div = parse_pdf()
+    calc_tax(tax)
+    calc_div(div)
