@@ -14,22 +14,35 @@ def parse_pdf():
         reader = PyPDF2.PdfReader(f)
 
         for i in range(args.pages[0], args.pages[-1]):
-
             page = reader.pages[i]
 
             text = page.extract_text()
-            tax_match = re.findall(
-                rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
-            if not tax_match and args.verbose:
+            # regex has to match the following:
+            # 2023-09-11 IBM(US4592001014) Cash Dividend USD 1.66 per Share - US Tax -2.99
+            #
+            # 2023-01-16CAH(US14149Y1082) Cash Dividend USD 0.4957 per Share - US
+            # Tax-0.60
+            #
+            # ENB(CA29250N1050) Cash Dividend USD 0.65161 per Share - CA Tax -2.25
+            match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)",
+                               text)
+            if not match and args.verbose:
                 print(f"tax regex error on page {i}")
-            tax += tax_match
+            tax += match
 
-            div_match = re.findall(
+            # # regex has to match the following:
+            # 2023-03-15ED(US2091151041) Cash Dividend USD 0.81 per Share (Ordinary Dividend)
+            #  0.88 per Share (Ordinary Dividend)
+            #
+            # 2022-05-13MMP(US5590801065) Cash Dividend USD 1.0375 per Share (Limited Partnership)9.34
+            #
+            # 2023-08-31ETD(US2976021046) Cash Dividend USD 0.50 per Share (Bonus Dividend)24.00
+            match = re.findall(
                 rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)",
                 text)
-            if not div_match and args.verbose:
+            if not match and args.verbose:
                 print(f"div regex error on page {i}")
-            div += div_match
+            div += match
     return tax, div
 
 
@@ -49,7 +62,8 @@ def calc_totals(raw_data):
         totals["usd"] += usdv
         exchange_rate = []
         while not exchange_rate:
-            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
+            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
+                                                      ["USD"])
             if not exchange_rate:
                 if args.verbose:
                     print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
