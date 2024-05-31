@@ -60,7 +60,32 @@ def filter_by_year(data_raw: List) -> List:
     return data_filtered
 
 
-def calc_totals(data_raw: List, base: str) -> Dict:
+def fetch_exchange_rates(data_raw: List, base: str) -> Dict:
+    exchange_rate_db = {}
+
+    for data in data_raw:
+        year = int(data[0])
+        month = int(data[1])
+        day = int(data[2])
+
+        exchange_rate = []
+        day_counter = 0
+        while not exchange_rate:
+            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), [base])
+            if not exchange_rate:
+                if args.verbose:
+                    print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
+                day += 1
+                day_counter += 1
+        exchange_rate_db[f"{year}-{month}-{day}"] = exchange_rate[0].rates[0].rate
+        while day_counter != 0:
+            exchange_rate_db[f"{year}-{month}-{day-day_counter}"] = exchange_rate[0].rates[0].rate
+            day_counter -= 1
+        time.sleep(0.1)
+    return exchange_rate_db
+
+
+def calc_totals(data_raw: List, base: str, exchange_rate_db: Dict) -> Dict:
     totals = {base: 0.0, "huf": 0.0}
 
     for data in data_raw:
@@ -69,19 +94,8 @@ def calc_totals(data_raw: List, base: str) -> Dict:
         day = int(data[2])
         val = float(data[3])
         totals[base] += val
-        exchange_rate = []
-        while not exchange_rate:
-            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
-                                                      [base])
-            if not exchange_rate:
-                if args.verbose:
-                    print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
-                day += 1
-        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
-                                                  ["USD"])
-        er_rate = exchange_rate[0].rates[0].rate
-        totals["huf"] += val * er_rate
-        time.sleep(0.1)
+        exchange_rate = exchange_rate_db[f"{year}-{month}-{day}"]
+        totals["huf"] += val * exchange_rate
     return totals
 
 
@@ -100,13 +114,18 @@ if __name__ == "__main__":
     tax, div, base = parse_pdf()
     tax = filter_by_year(tax)
     div = filter_by_year(div)
+
+    print("Fetching exchange rates...")
+    exchange_rate_db = fetch_exchange_rates(tax, base)
+
     print("Calculating tax totals...")
-    totals = calc_totals(tax, base)
+    totals = calc_totals(tax, base, exchange_rate_db)
     print(f"tax [{base}]: {totals[base]}")
     print(f"tax [HUF]: {totals['huf']}")
     print(f"# of tax transactions: {len(tax)}")
+
     print("Calculating div totals...")
-    totals = calc_totals(div, base)
+    totals = calc_totals(div, base, exchange_rate_db)
     print(f"div [{base}]: {totals[base]}")
     print(f"div [HUF]: {totals['huf']}")
     print(f"# of div transactions: {len(div)}")
