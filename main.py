@@ -20,14 +20,14 @@ def parse_pdf():
             text = page.extract_text()
             tax_match = re.findall(
                 rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
-            if not tax_match:
+            if not tax_match and args.verbose:
                 print(f"tax regex error on page {i}")
             tax += tax_match
 
             div_match = re.findall(
                 rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)",
                 text)
-            if not div_match:
+            if not div_match and args.verbose:
                 print(f"div regex error on page {i}")
             div += div_match
     return tax, div
@@ -51,7 +51,8 @@ def calc_totals(raw_data):
         while not exchange_rate:
             exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
             if not exchange_rate:
-                print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
+                if args.verbose:
+                    print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
                 day += 1
         exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
                                                   ["USD"])
@@ -69,6 +70,7 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--pages", type=int, nargs="+", required=True,
                         help="start and end pages of tax and dividend info")
     parser.add_argument("-y", "--year", type=int, nargs=1, required=True, help="year filter")
+    parser.add_argument("-v", "--verbose", action="store_true", help="verbose mode")
     args = parser.parse_args()
 
     tax, div = parse_pdf()
