@@ -10,3 +10,19 @@
 $ pip install pypdf2
 $ pip install mnb
 ```
+
+### How to use
+
+```
+$ python main.py -i statement.pdf -y 2022                            
+Parsing pdf...
+Fetching exchange rates...
+Calculating tax totals...
+tax [USD]: -52.87
+tax [HUF]: -19733.09
+# of tax transactions: 31
+Calculating div totals...
+div [USD]: 334.00
+div [HUF]: 124820.65
+# of div transactions: 31
+```
