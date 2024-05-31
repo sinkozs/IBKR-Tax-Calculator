@@ -4,9 +4,10 @@ import mnb
 import PyPDF2
 import re
 import time
+from typing import Dict, List, Tuple
 
 
-def parse_pdf():
+def parse_pdf() -> Tuple[List, List]:
     tax = []
     div = []
 
@@ -46,15 +47,15 @@ def parse_pdf():
     return tax, div
 
 
-def filter_by_year(input_list):
-    filtered_list = [x for x in input_list if int(x[0]) == args.year[0]]
-    return filtered_list
+def filter_by_year(data_raw: List) -> List:
+    data_filtered = [x for x in data_raw if int(x[0]) == args.year[0]]
+    return data_filtered
 
 
-def calc_totals(raw_data):
+def calc_totals(data_raw: List) -> Dict:
     totals = {"usd": 0.0, "huf": 0.0}
 
-    for t in raw_data:
+    for t in data_raw:
         year = int(t[0])
         month = int(t[1])
         day = int(t[2])
