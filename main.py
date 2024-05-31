@@ -123,12 +123,12 @@ if __name__ == "__main__":
 
     print("Calculating tax totals...")
     totals = calc_totals(tax, base, exchange_rate_db)
-    print(f"tax [{base}]: {totals[base]}")
-    print(f"tax [HUF]: {totals['huf']}")
+    print(f"tax [{base}]: {totals[base]:.2f}")
+    print(f"tax [HUF]: {totals['huf']:.2f}")
     print(f"# of tax transactions: {len(tax)}")
 
     print("Calculating div totals...")
     totals = calc_totals(div, base, exchange_rate_db)
-    print(f"div [{base}]: {totals[base]}")
-    print(f"div [HUF]: {totals['huf']}")
+    print(f"div [{base}]: {totals[base]:.2f}")
+    print(f"div [HUF]: {totals['huf']:.2f}")
     print(f"# of div transactions: {len(div)}")
