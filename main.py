@@ -81,7 +81,6 @@ def fetch_exchange_rates(data_raw: List, base: str) -> Dict:
         while day_counter != 0:
             exchange_rate_db[f"{year}-{month}-{day-day_counter}"] = exchange_rate[0].rates[0].rate
             day_counter -= 1
-        time.sleep(0.1)
     return exchange_rate_db
 
 
