@@ -73,13 +73,18 @@ if __name__ == "__main__":
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose mode")
     args = parser.parse_args()
 
+    print("Parsing pdf...")
     tax, div = parse_pdf()
     tax = filter_by_year(tax)
     div = filter_by_year(div)
+
+    print("Calculating tax totals...")
     totals_tax = calc_totals(tax)
     print(f"tax [USD]: {totals_tax['usd']}")
     print(f"tax [HUF]: {totals_tax['huf']}")
     print(f"# of tax transactions: {len(tax)}")
+
+    print("Calculating div totals...")
     totals_div = calc_totals(div)
     print(f"div [USD]: {totals_div['usd']}")
     print(f"div [HUF]: {totals_div['huf']}")
