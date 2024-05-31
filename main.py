@@ -7,9 +7,10 @@ import time
 from typing import Dict, List, Tuple
 
 
-def parse_pdf() -> Tuple[List, List]:
+def parse_pdf() -> Tuple[List, List, str]:
     tax = []
     div = []
+    base = ''
 
     with open(args.input[0], "rb") as f:
         reader = PyPDF2.PdfReader(f)
@@ -18,6 +19,13 @@ def parse_pdf() -> Tuple[List, List]:
             page = reader.pages[i]
 
             text = page.extract_text()
+
+            # regex has to match the following:
+            # Base Currency USD
+            match = re.search(r"Base Currency *(?P<currency>[A-Z]{3})", text)
+            if match:
+                base = match["currency"]
+
             # regex has to match the following:
             # 2023-09-11 IBM(US4592001014) Cash Dividend USD 1.66 per Share - US Tax -2.99
             #
@@ -44,7 +52,7 @@ def parse_pdf() -> Tuple[List, List]:
             if not match and args.verbose:
                 print(f"div regex error on page {i}")
             div += match
-    return tax, div
+    return tax, div, base
 
 
 def filter_by_year(data_raw: List) -> List:
@@ -52,27 +60,27 @@ def filter_by_year(data_raw: List) -> List:
     return data_filtered
 
 
-def calc_totals(data_raw: List) -> Dict:
-    totals = {"usd": 0.0, "huf": 0.0}
+def calc_totals(data_raw: List, base: str) -> Dict:
+    totals = {base: 0.0, "huf": 0.0}
 
     for data in data_raw:
         year = int(data[0])
         month = int(data[1])
         day = int(data[2])
-        usd = float(data[3])
-        totals["usd"] += usd
+        val = float(data[3])
+        totals[base] += val
         exchange_rate = []
         while not exchange_rate:
             exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
-                                                      ["USD"])
+                                                      [base])
             if not exchange_rate:
                 if args.verbose:
                     print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
                 day += 1
         exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
                                                   ["USD"])
-        uds2huf_rate = exchange_rate[0].rates[0].rate
-        totals["huf"] += usd * uds2huf_rate
+        er_rate = exchange_rate[0].rates[0].rate
+        totals["huf"] += val * er_rate
         time.sleep(0.1)
     return totals
 
@@ -89,16 +97,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print("Parsing pdf...")
-    tax, div = parse_pdf()
+    tax, div, base = parse_pdf()
     tax = filter_by_year(tax)
     div = filter_by_year(div)
     print("Calculating tax totals...")
-    totals = calc_totals(tax)
-    print(f"tax [USD]: {totals['usd']}")
+    totals = calc_totals(tax, base)
+    print(f"tax [{base}]: {totals[base]}")
     print(f"tax [HUF]: {totals['huf']}")
     print(f"# of tax transactions: {len(tax)}")
     print("Calculating div totals...")
-    totals = calc_totals(div)
-    print(f"div [USD]: {totals['usd']}")
+    totals = calc_totals(div, base)
+    print(f"div [{base}]: {totals[base]}")
     print(f"div [HUF]: {totals['huf']}")
     print(f"# of div transactions: {len(div)}")
