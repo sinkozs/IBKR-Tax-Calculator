@@ -15,9 +15,7 @@ def parse_pdf() -> Tuple[List, List, str]:
     with open(args.input[0], "rb") as f:
         reader = PyPDF2.PdfReader(f)
 
-        for i in range(args.pages[0], args.pages[-1]):
-            page = reader.pages[i]
-
+        for i, page in enumerate(reader.pages):
             text = page.extract_text()
 
             # regex has to match the following:
@@ -103,8 +101,6 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="IBKR tax and dividend helper")
     parser.add_argument("-i", "--input", type=str, nargs=1, required=True, help="input statement (.pdf)")
-    parser.add_argument("-p", "--pages", type=int, nargs="+", required=True,
-                        help="start and end pages of tax and dividend info")
     parser.add_argument("-y", "--year", type=int, nargs=1, required=True, help="year filter")
     parser.add_argument("-v", "--verbose", action="store_true", help="verbose mode")
     args = parser.parse_args()
