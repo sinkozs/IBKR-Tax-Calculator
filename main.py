@@ -89,10 +89,10 @@ def calc_totals(data_raw: List, base: str, exchange_rate_db: Dict) -> Dict:
         year = int(data[0])
         month = int(data[1])
         day = int(data[2])
-        val = float(data[3])
-        totals[base] += val
+        amount = float(data[3])
+        totals[base] += amount
         exchange_rate = exchange_rate_db[f"{year}-{month}-{day}"]
-        totals["huf"] += val * exchange_rate
+        totals["huf"] += amount * exchange_rate
     return totals
 
 
