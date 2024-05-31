@@ -18,12 +18,15 @@ def parse_pdf():
             page = reader.pages[i]
 
             text = page.extract_text()
-            tax_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
+            tax_match = re.findall(
+                rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+(?:US|CA)\n* *Tax *(?P<taxv>-*\d+\.\d+)", text)
             if not tax_match:
                 print(f"tax regex error on page {i}")
             tax += tax_match
 
-            div_match = re.findall(rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)", text)
+            div_match = re.findall(
+                rf"(?P<year>\d+)-(?P<month>\d+)-(?P<day>\d+).+\n*\((?:Ordinary|Limited|Bonus)\n* *(?:Dividend|Partnership)\)(?P<divv>-*\d+\.\d+)",
+                text)
             if not div_match:
                 print(f"div regex error on page {i}")
             div += div_match
@@ -44,11 +47,14 @@ def calc_totals(raw_data):
         day = int(t[2])
         usdv = float(t[3])
         totals["usd"] += usdv
-        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
-        if not exchange_rate:
-            print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day+1}")
-            day += 1
-        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
+        exchange_rate = []
+        while not exchange_rate:
+            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), ["USD"])
+            if not exchange_rate:
+                print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
+                day += 1
+        exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
+                                                  ["USD"])
         uds2huf_rate = exchange_rate[0].rates[0].rate
         totals["huf"] += usdv * uds2huf_rate
         time.sleep(0.1)
