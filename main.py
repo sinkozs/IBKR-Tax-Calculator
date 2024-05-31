@@ -3,7 +3,6 @@ import datetime
 import mnb
 import PyPDF2
 import re
-import time
 from typing import Dict, List, Tuple
 
 
@@ -66,10 +65,15 @@ def fetch_exchange_rates(data_raw: List, base: str) -> Dict:
         month = int(data[1])
         day = int(data[2])
 
+        # continue if the exchange rate for the day is stored already in the db
+        if f"{year}-{month}-{day}" in exchange_rate_db:
+            continue
+
         exchange_rate = []
         day_counter = 0
         while not exchange_rate:
-            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), [base])
+            exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day),
+                                                      [base])
             # there is no MNB exchange rate available on some days
             # if there is no MNB exchange rate available for a specific day then use the rate from the next day
             # if it is not available there neither we go to the day after that and so on
@@ -81,7 +85,7 @@ def fetch_exchange_rates(data_raw: List, base: str) -> Dict:
         exchange_rate_db[f"{year}-{month}-{day}"] = exchange_rate[0].rates[0].rate
         # fill days when data was not available
         while day_counter != 0:
-            exchange_rate_db[f"{year}-{month}-{day-day_counter}"] = exchange_rate[0].rates[0].rate
+            exchange_rate_db[f"{year}-{month}-{day - day_counter}"] = exchange_rate[0].rates[0].rate
             day_counter -= 1
     return exchange_rate_db
 
