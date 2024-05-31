@@ -70,12 +70,16 @@ def fetch_exchange_rates(data_raw: List, base: str) -> Dict:
         day_counter = 0
         while not exchange_rate:
             exchange_rate = client.get_exchange_rates(datetime.date(year, month, day), datetime.date(year, month, day), [base])
+            # there is no MNB exchange rate available on some days
+            # if there is no MNB exchange rate available for a specific day then use the rate from the next day
+            # if it is not available there neither we go to the day after that and so on
             if not exchange_rate:
                 if args.verbose:
                     print(f"exchange rate error - {year}-{month}-{day}, trying again with - {year}-{month}-{day + 1}")
                 day += 1
                 day_counter += 1
         exchange_rate_db[f"{year}-{month}-{day}"] = exchange_rate[0].rates[0].rate
+        # fill days when data was not available
         while day_counter != 0:
             exchange_rate_db[f"{year}-{month}-{day-day_counter}"] = exchange_rate[0].rates[0].rate
             day_counter -= 1
